@@ -6,6 +6,7 @@ Bu proje, dijital dikkat dağınıklığıyla mücadele etmeyi amaçlayan bir od
 Kullanıcı, belirli bir süre için odaklanma seansı başlatabilir; uygulama bu süre boyunca kullanıcının uygulamadan çıkıp çıkmadığını takip eder ve seans sonunda anlamlı veriler sunar.
 
  Özellikler (MVP Gereksinimleri)
+ 
 🔹 1. Ana Sayfa (Zamanlayıcı)
 
 25 dakika (± ayarlanabilir) geri sayım sayacı
