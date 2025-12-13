@@ -1,44 +1,82 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Picker } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+
+const INITIAL_TIME = 25 * 60; // 25 dakika (saniye)
 
 export default function HomeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('Ders Çalışma');
+  const [selectedCategory, setSelectedCategory] = useState('ders');
+  const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
+  const [isRunning, setIsRunning] = useState(false);
+
+  // Timer logic
+  useEffect(() => {
+    let interval = null;
+
+    if (isRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    }
+
+    if (timeLeft === 0) {
+      setIsRunning(false);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, timeLeft]);
+
+  // Helpers
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
+
+  const startTimer = () => setIsRunning(true);
+  const pauseTimer = () => setIsRunning(false);
+  const resetTimer = () => {
+    setIsRunning(false);
+    setTimeLeft(INITIAL_TIME);
+  };
 
   return (
     <View style={styles.container}>
-      
-      {/* Kategori Seçimi */}
+
+      {/* Kategori */}
       <View style={styles.categoryBox}>
         <Text style={styles.label}>Kategori Seç:</Text>
         <Picker
           selectedValue={selectedCategory}
-          style={styles.picker}
-          onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+          onValueChange={(value) => setSelectedCategory(value)}
         >
           <Picker.Item label="Ders Çalışma" value="ders" />
-          <Picker.Item label="Kodlama" value="kod" />
+          <Picker.Item label="Kodlama" value="kodlama" />
           <Picker.Item label="Proje" value="proje" />
           <Picker.Item label="Kitap Okuma" value="kitap" />
         </Picker>
       </View>
 
-      {/* Zamanlayıcı Gösterimi */}
-      <Text style={styles.timer}>25:00</Text>
+      {/* Timer */}
+      <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
 
-      {/* Butonlar */}
+      {/* Buttons */}
       <View style={styles.buttonsContainer}>
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={startTimer}>
           <Text style={styles.buttonText}>Başlat</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={pauseTimer}>
           <Text style={styles.buttonText}>Duraklat</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={resetTimer}>
           <Text style={styles.buttonText}>Sıfırla</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
 }
@@ -46,7 +84,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
+    paddingTop: 40,
     alignItems: 'center',
   },
   categoryBox: {
@@ -55,17 +93,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
     marginBottom: 5,
   },
-  picker: {
-    backgroundColor: '#eee',
-    borderRadius: 8,
-  },
   timer: {
-    fontSize: 60,
+    fontSize: 64,
     fontWeight: 'bold',
-    marginVertical: 40,
+    marginVertical: 30,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -74,7 +107,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#4a90e2',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderRadius: 10,
   },
   buttonText: {
@@ -83,4 +116,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
 
