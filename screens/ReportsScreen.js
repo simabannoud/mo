@@ -1,92 +1,122 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BarChart, PieChart } from 'react-native-chart-kit';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function ReportsScreen() {
-  const [todayTotal, setTodayTotal] = useState(0);
-  const [allTimeTotal, setAllTimeTotal] = useState(0);
-  const [totalDistractions, setTotalDistractions] = useState(0);
+  const [weeklyData, setWeeklyData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
 
   useEffect(() => {
-    loadReports();
+    loadCharts();
   }, []);
 
-  const loadReports = async () => {
+  const loadCharts = async () => {
     try {
       const data = await AsyncStorage.getItem('sessions');
       const sessions = data ? JSON.parse(data) : [];
 
-      const today = new Date().toDateString();
+      // --- Son 7 Gün ---
+      const days = [];
+      const minutes = [];
 
-      let todayMinutes = 0;
-      let allMinutes = 0;
-      let distractions = 0;
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const label = d.toLocaleDateString('tr-TR', { weekday: 'short' });
 
-      sessions.forEach((session) => {
-        const sessionDate = new Date(session.date).toDateString();
+        const total = sessions
+          .filter(
+            (s) =>
+              new Date(s.date).toDateString() === d.toDateString()
+          )
+          .reduce((sum, s) => sum + s.duration, 0);
 
-        allMinutes += session.duration;
-        distractions += session.distractions;
+        days.push(label);
+        minutes.push(total);
+      }
 
-        if (sessionDate === today) {
-          todayMinutes += session.duration;
-        }
+      setWeeklyData({
+        labels: days,
+        datasets: [{ data: minutes }],
       });
 
-      setTodayTotal(todayMinutes);
-      setAllTimeTotal(allMinutes);
-      setTotalDistractions(distractions);
-    } catch (error) {
-      console.log('Raporlar yüklenemedi', error);
+      // --- Kategori Dağılımı ---
+      const categories = {};
+      sessions.forEach((s) => {
+        categories[s.category] =
+          (categories[s.category] || 0) + s.duration;
+      });
+
+      const pie = Object.keys(categories).map((key, index) => ({
+        name: key,
+        population: categories[key],
+        color: ['#4a90e2', '#50e3c2', '#f5a623', '#d0021b'][index % 4],
+        legendFontColor: '#333',
+        legendFontSize: 14,
+      }));
+
+      setCategoryData(pie);
+    } catch (e) {
+      console.log('Grafik verileri yüklenemedi', e);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>📊 Odaklanma Raporları</Text>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>📈 Haftalık Odaklanma</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Bugün Toplam Odaklanma</Text>
-        <Text style={styles.value}>{todayTotal} dk</Text>
-      </View>
+      {weeklyData.labels && (
+        <BarChart
+          data={weeklyData}
+          width={screenWidth - 20}
+          height={220}
+          fromZero
+          chartConfig={chartConfig}
+          style={styles.chart}
+        />
+      )}
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Tüm Zamanların Toplamı</Text>
-        <Text style={styles.value}>{allTimeTotal} dk</Text>
-      </View>
+      <Text style={styles.title}>🥧 Kategori Dağılımı</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Toplam Dikkat Dağınıklığı</Text>
-        <Text style={styles.value}>{totalDistractions}</Text>
-      </View>
-    </View>
+      {categoryData.length > 0 && (
+        <PieChart
+          data={categoryData}
+          width={screenWidth - 20}
+          height={220}
+          chartConfig={chartConfig}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="10"
+          absolute
+        />
+      )}
+    </ScrollView>
   );
 }
+
+const chartConfig = {
+  backgroundGradientFrom: '#ffffff',
+  backgroundGradientTo: '#ffffff',
+  decimalPlaces: 0,
+  color: () => '#4a90e2',
+  labelColor: () => '#555',
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginVertical: 15,
     textAlign: 'center',
   },
-  card: {
-    backgroundColor: '#f2f2f2',
-    padding: 20,
+  chart: {
     borderRadius: 12,
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 16,
-    color: '#555',
-  },
-  value: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginTop: 5,
   },
 });
